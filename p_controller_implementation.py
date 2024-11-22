@@ -1,5 +1,5 @@
 """
-Modified by William Chastek to model a f1tenth robotic system.
+Modified by William Chastek to model a f1tenth robotic system. Trying to implement the p control use in https://docs.google.com/presentation/d/1jpnlQ7ysygTPCi8dmyZjooqzxNXWqMgO31ZhcOlKVOE/edit#slide=id.g63d5f5680f_0_0
 
 Based on:
 Path tracking simulation with pure pursuit steering and PID speed control witten by Atsushi Sakai (@Atsushi_twi) and Guillaume Jacquenot (@Gjacquenot)
@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 import sys
 
 # Parameters
-k = 0.1  # look forward gain
+k = 0.5  # look forward gain
 Lfc = 1.0  # [m] look-ahead distance
 Kp = 1.0  # speed proportional gain
 dt = 0.1  # [s] time tick
@@ -117,25 +117,29 @@ class TargetCourse:
 
 def pure_pursuit_steer_control(state, trajectory, pind):
     ind, Lf = trajectory.search_target_index(state)
+    # Based on https://mecharithm.com/learning/lesson/homogenous-transformation-matrices-configurations-in-robotics-12
+    theta = state.yaw
+    gloabl_tx = trajectory.cx[ind] # This is the target waypoints x position
+    global_ty = trajectory.cy[ind] # This is the target waypoints y position
 
-    if pind >= ind:
-        ind = pind
+    transformation_matrix = np.array([
+        [np.cos(theta), -np.sin(theta), 0, state.x],
+        [np.sin(theta), np.cos(theta), 0, state.y],
+        [0, 0, 1, 0],
+        [0, 0, 0, 1]
+    ])
 
-    # if ind < len(trajectory.cx):
-    tx = trajectory.cx[ind]
-    ty = trajectory.cy[ind]
-    # else:  # toward goal
-    #     tx = trajectory.cx[-1]
-    #     ty = trajectory.cy[-1]
-    #     ind = len(trajectory.cx) - 1
-
-    alpha = math.atan2(ty - state.rear_y, tx - state.rear_x) - state.yaw
-    delta = math.atan2(2.0 * WB * math.sin(alpha) / Lf, 1.0)
-
-    # r = math.sqrt((tx-state.x)**2 + (ty - state.y)**2)
+    trans_inv = np.linalg.inv(transformation_matrix)
+    look_ahead_point_global = np.array([gloabl_tx, global_ty, 0, 1])
     
-    return delta, ind
+    look_ahead_point_robot = trans_inv @ look_ahead_point_global
 
+    print(look_ahead_point_robot)
+
+    r = pow(Lf, 2) / (2*abs(look_ahead_point_robot[1]))
+
+    delta = k * 2 * look_ahead_point_robot[1] / pow(r, 2) # Angle calculated using CL2 Waterloo p-controllerequation https://github.com/CL2-UWaterloo/f1tenth_ws/blob/main/src/pure_pursuit/src/pure_pursuit.cpp
+    return delta, ind
 
 def plot_arrow(x, y, yaw, length=1.0, width=0.5, fc="r", ec="k"):
     """
@@ -166,7 +170,7 @@ def main():
     T = 100.0  # max simulation time
 
     # initial state ,
-    state = State(x=-2.5, y=-12.5, yaw=60.0, v=0.0)
+    state = State(x=-2.5, y=-12.5, yaw=1.0, v=0.0)
 
     lastIndex = len(cx) - 1
     time = 0.0
@@ -174,7 +178,7 @@ def main():
     states.append(time, state)
     target_course = TargetCourse(cx, cy)
     target_ind, _ = target_course.search_target_index(state)
-    #  and lastIndex > target_ind
+
     while T >= time:
         if lastIndex == target_ind:
             target_ind = 0
