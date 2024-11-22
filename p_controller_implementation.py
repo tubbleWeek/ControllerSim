@@ -123,18 +123,17 @@ def pure_pursuit_steer_control(state, trajectory, pind):
     global_ty = trajectory.cy[ind] # This is the target waypoints y position
 
     transformation_matrix = np.array([
-        [np.cos(theta), -np.sin(theta), 0, state.x],
-        [np.sin(theta), np.cos(theta), 0, state.y],
-        [0, 0, 1, 0],
-        [0, 0, 0, 1]
+        [np.cos(theta), -np.sin(theta), state.x],
+        [np.sin(theta), np.cos(theta), state.y],
+        [0, 0, 1],
     ])
 
     trans_inv = np.linalg.inv(transformation_matrix)
-    look_ahead_point_global = np.array([gloabl_tx, global_ty, 0, 1])
+    look_ahead_point_global = np.array([gloabl_tx, global_ty, 1])
     
     look_ahead_point_robot = trans_inv @ look_ahead_point_global
 
-    print(look_ahead_point_robot)
+    # print(look_ahead_point_robot)
 
     r = pow(Lf, 2) / (2*abs(look_ahead_point_robot[1]))
 
