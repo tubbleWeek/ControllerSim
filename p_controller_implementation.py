@@ -95,18 +95,15 @@ class TargetCourse:
             self.old_nearest_point_index = ind
         else:
             ind = self.old_nearest_point_index
-            distance_this_index = state.calc_distance(self.cx[ind],
-                                                      self.cy[ind])
+            # distance_this_index = state.calc_distance(self.cx[ind],
+                                                    #   self.cy[ind])
             while True:
-                distance_next_index = state.calc_distance(self.cx[(ind + 1)%len(self.cx)],
-                                                          self.cy[(ind + 1)%len(self.cy)])
+                distance_this_index = state.calc_distance(self.cx[ind], self.cy[ind])
+                distance_next_index = state.calc_distance(self.cx[(ind + 1) % len(self.cx)], self.cy[(ind + 1) % len(self.cy)])
                 if distance_this_index < distance_next_index:
                     break
-                # ind = ind + 1 if (ind + 1) < len(self.cx) else ind
-                ind = (ind + 1) % len(self.cx)
-                distance_this_index = distance_next_index
+                ind = (ind + 1) % len(self.cx)  # Ensure wrap-around in a circular path
             self.old_nearest_point_index = ind
-
         # Lf = k * state.v + Lfc  # update look ahead distance
         # Lf = min(max(min_lookahead, k * state.v + Lfc ), max_lookahead)
         Lf = min(max(min_lookahead, max_lookahead * state.v / lookahead_ratio ), max_lookahead)
