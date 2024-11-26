@@ -141,7 +141,7 @@ def pure_pursuit_steer_control(state, trajectory, pind):
 
     y = look_ahead_point_robot[1]
 
-    delta = Lf * 2.0 * y / pow(r, 2) # Angle calculated using CL2 Waterloo p-controllerequation https://github.com/CL2-UWaterloo/f1tenth_ws/blob/main/src/pure_pursuit/src/pure_pursuit.cpp
+    delta = k * 2.0 * y / pow(r, 2) # Angle calculated using CL2 Waterloo p-controllerequation https://github.com/CL2-UWaterloo/f1tenth_ws/blob/main/src/pure_pursuit/src/pure_pursuit.cpp
     return delta, ind
 
 def plot_arrow(x, y, yaw, length=1.0, width=0.5, fc="r", ec="k"):
