@@ -22,6 +22,9 @@ Lfc = 1.0  # [m] look-ahead distance
 Kp = 1.0  # speed proportional gain
 dt = 0.1  # [s] time tick
 WB = 0.33  # [m] wheel base of vehicle
+min_lookahead = 0.5
+max_lookahead = 1.0
+lookahead_ratio = 8.0
 
 show_animation = True
 
@@ -104,8 +107,8 @@ class TargetCourse:
                 distance_this_index = distance_next_index
             self.old_nearest_point_index = ind
 
-        Lf = k * state.v + Lfc  # update look ahead distance
-
+        # Lf = k * state.v + Lfc  # update look ahead distance
+        Lf = min(max(min_lookahead, max_lookahead * state.v / lookahead_ratio), max_lookahead)
         # search look ahead target point index
         while Lf > state.calc_distance(self.cx[ind], self.cy[ind]):
             if (ind + 1) >= len(self.cx):
@@ -119,25 +122,26 @@ def pure_pursuit_steer_control(state, trajectory, pind):
     ind, Lf = trajectory.search_target_index(state)
     # Based on https://mecharithm.com/learning/lesson/homogenous-transformation-matrices-configurations-in-robotics-12
     theta = state.yaw
-    gloabl_tx = trajectory.cx[ind] # This is the target waypoints x position
+    global_tx = trajectory.cx[ind] # This is the target waypoints x position
     global_ty = trajectory.cy[ind] # This is the target waypoints y position
 
     transformation_matrix = np.array([
-        [np.cos(theta), -np.sin(theta), state.x],
-        [np.sin(theta), np.cos(theta), state.y],
-        [0, 0, 1],
+        [np.cos(theta), np.sin(theta), 0],
+        [-np.sin(theta), np.cos(theta), 0],
+        [0, 0, 1]
     ])
 
-    trans_inv = np.linalg.inv(transformation_matrix)
-    look_ahead_point_global = np.array([gloabl_tx, global_ty, 1])
-    
-    look_ahead_point_robot = trans_inv @ look_ahead_point_global
+    translation_v = np.array([-state.x, -state.y, 0])
 
-    # print(look_ahead_point_robot)
+    look_ahead_point_global = np.array([global_tx, global_ty, 0])
 
-    r = pow(Lf, 2) / (2*abs(look_ahead_point_robot[1]))
+    look_ahead_point_robot = transformation_matrix @ (look_ahead_point_global + translation_v)
 
-    delta = k * 2 * look_ahead_point_robot[1] / pow(r, 2) # Angle calculated using CL2 Waterloo p-controllerequation https://github.com/CL2-UWaterloo/f1tenth_ws/blob/main/src/pure_pursuit/src/pure_pursuit.cpp
+    r = np.linalg.norm(look_ahead_point_robot)
+
+    y = look_ahead_point_robot[1]
+
+    delta = Lf * 2.0 * y / pow(r, 2) # Angle calculated using CL2 Waterloo p-controllerequation https://github.com/CL2-UWaterloo/f1tenth_ws/blob/main/src/pure_pursuit/src/pure_pursuit.cpp
     return delta, ind
 
 def plot_arrow(x, y, yaw, length=1.0, width=0.5, fc="r", ec="k"):
