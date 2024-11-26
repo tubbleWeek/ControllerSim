@@ -23,7 +23,7 @@ Kp = 1.0  # speed proportional gain
 dt = 0.1  # [s] time tick
 WB = 0.33  # [m] wheel base of vehicle
 min_lookahead = 0.5
-max_lookahead = 1.0
+max_lookahead = 3.0
 lookahead_ratio = 8.0
 
 show_animation = True
@@ -108,13 +108,13 @@ class TargetCourse:
             self.old_nearest_point_index = ind
 
         # Lf = k * state.v + Lfc  # update look ahead distance
-        Lf = min(max(min_lookahead, max_lookahead * state.v / lookahead_ratio), max_lookahead)
+        # Lf = min(max(min_lookahead, k * state.v + Lfc ), max_lookahead)
+        Lf = min(max(min_lookahead, max_lookahead * state.v / lookahead_ratio ), max_lookahead)
         # search look ahead target point index
         while Lf > state.calc_distance(self.cx[ind], self.cy[ind]):
             if (ind + 1) >= len(self.cx):
                 break  # not exceed goal
             ind += 1
-
         return ind, Lf
 
 
@@ -138,9 +138,9 @@ def pure_pursuit_steer_control(state, trajectory, pind):
     look_ahead_point_robot = transformation_matrix @ (look_ahead_point_global + translation_v)
 
     r = np.linalg.norm(look_ahead_point_robot)
-
     y = look_ahead_point_robot[1]
 
+    print(f'Robot (x,y): ({state.x, state.y}), Target point (x,y): ({look_ahead_point_global[0], look_ahead_point_global[1]})\n')
     delta = k * 2.0 * y / pow(r, 2) # Angle calculated using CL2 Waterloo p-controllerequation https://github.com/CL2-UWaterloo/f1tenth_ws/blob/main/src/pure_pursuit/src/pure_pursuit.cpp
     return delta, ind
 
